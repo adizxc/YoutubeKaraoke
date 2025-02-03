@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>YouTube Queue - Screen</title>
+    <title>YouTube Karaoke Queue - Screen</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -19,11 +19,17 @@
             padding: 20px;
         }
         #player {
-            margin-bottom: 20px;
-            border-radius: 12px;
-            overflow: hidden;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
-            background: rgba(0, 0, 0, 0.3);
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1000;
+            background: black;
+            display: none;
+        }
+        #player.active {
+            display: block;
         }
         .controls {
             margin-bottom: 20px;
@@ -159,7 +165,7 @@
 <body>
     <div class="container">
         <a href="/" class="home-link">🏠 Home</a>
-        <h1>Screen Mode</h1>
+        <h1>Karaoke Screen Mode</h1>
         
         <div id="player"></div>
         
@@ -239,8 +245,22 @@
         }
 
         function updateCurrentVideo(video) {
-            const currentVideo = document.getElementById('currentVideo');
-            currentVideo.innerHTML = `<iframe src="${video.embed_url}" allowfullscreen></iframe>`;
+            const player = document.getElementById('player');
+            player.innerHTML = `<iframe src="${video.embed_url}?autoplay=1&modestbranding=1&rel=0&showinfo=0&controls=1" 
+                allowfullscreen style="width:100%;height:100%;border:0;"></iframe>`;
+            player.classList.add('active');
+
+            // Request fullscreen after a short delay to ensure the iframe is loaded
+            setTimeout(() => {
+                const iframe = player.querySelector('iframe');
+                if (iframe.requestFullscreen) {
+                    iframe.requestFullscreen();
+                } else if (iframe.webkitRequestFullscreen) {
+                    iframe.webkitRequestFullscreen();
+                } else if (iframe.msRequestFullscreen) {
+                    iframe.msRequestFullscreen();
+                }
+            }, 1000);
         }
 
         function removeFromQueue(videoId) {
@@ -324,6 +344,23 @@
                     });
                 });
             });
+        }
+
+        // Handle fullscreen changes
+        document.addEventListener('fullscreenchange', handleFullscreenChange);
+        document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+        document.addEventListener('mozfullscreenchange', handleFullscreenChange);
+        document.addEventListener('MSFullscreenChange', handleFullscreenChange);
+
+        function handleFullscreenChange() {
+            const player = document.getElementById('player');
+            if (!document.fullscreenElement && 
+                !document.webkitFullscreenElement && 
+                !document.mozFullScreenElement && 
+                !document.msFullscreenElement) {
+                // User exited fullscreen
+                player.classList.remove('active');
+            }
         }
 
         // Set up initial drag and drop
