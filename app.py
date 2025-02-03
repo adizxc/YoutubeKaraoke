@@ -6,8 +6,14 @@ import netifaces
 from googleapiclient.discovery import build
 import os
 
+# Load environment variables
+from dotenv import load_dotenv
+load_dotenv()
+
 # YouTube API setup
-YOUTUBE_API_KEY = os.getenv('YOUTUBE_API_KEY', 'AIzaSyBqAheDHND8YvKDRP03MxmZ5APIM_c7h_8')
+YOUTUBE_API_KEY = os.getenv('YOUTUBE_API_KEY')
+if not YOUTUBE_API_KEY:
+    raise ValueError("Please set YOUTUBE_API_KEY environment variable")
 youtube = build('youtube', 'v3', developerKey=YOUTUBE_API_KEY)
 
 app = Flask(__name__)
