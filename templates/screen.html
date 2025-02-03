@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YouTube Queue - Screen</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+            color: white;
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        #player {
+            margin-bottom: 20px;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+            background: rgba(0, 0, 0, 0.3);
+        }
+        .controls {
+            margin-bottom: 20px;
+            background: rgba(255, 255, 255, 0.05);
+            padding: 20px;
+            border-radius: 12px;
+            display: flex;
+            gap: 10px;
+        }
+        button {
+            padding: 12px 24px;
+            cursor: pointer;
+            background: #ff4b2b;
+            border: none;
+            color: white;
+            border-radius: 6px;
+            transition: background 0.2s, transform 0.2s;
+            font-size: 1rem;
+        }
+        button:hover {
+            background: #ff416c;
+            transform: translateY(-2px);
+        }
+        button:disabled {
+            background: #666;
+            cursor: not-allowed;
+            transform: none;
+        }
+        #message {
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 8px;
+            font-size: 0.9rem;
+        }
+        .success {
+            background-color: rgba(40, 167, 69, 0.2);
+            border: 1px solid #28a745;
+            color: white;
+        }
+        .error {
+            background-color: rgba(220, 53, 69, 0.2);
+            border: 1px solid #dc3545;
+            color: white;
+        }
+        .queue-container {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 20px;
+            margin-top: 2rem;
+        }
+        .queue-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        .queue-item {
+            display: flex;
+            align-items: center;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.1);
+            margin-bottom: 10px;
+            border-radius: 8px;
+            transition: background 0.2s;
+        }
+        .queue-item:hover {
+            background: rgba(255, 255, 255, 0.15);
+        }
+        .current {
+            background: rgba(255, 75, 43, 0.2);
+            border: 1px solid #ff4b2b;
+        }
+        .home-link {
+            display: inline-block;
+            margin-bottom: 20px;
+            text-decoration: none;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            transition: background 0.2s;
+        }
+        .home-link:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+        h1, h2 {
+            color: white;
+            margin-bottom: 1.5rem;
+        }
+        .video-title {
+            flex: 1;
+            margin-right: 10px;
+        }
+        .queue-item .handle {
+            cursor: move;
+            padding: 0 10px;
+            color: #666;
+        }
+        .queue-item .title {
+            flex: 1;
+            margin: 0 10px;
+        }
+        .queue-item .remove {
+            background-color: #dc3545;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .queue-item .remove:hover {
+            background-color: #c82333;
+        }
+        .now-playing {
+            margin-bottom: 20px;
+            padding: 20px;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        .controls button {
+            background-color: #007bff;
+        }
+        .controls button:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="/" class="home-link">🏠 Home</a>
+        <h1>Screen Mode</h1>
+        
+        <div id="player"></div>
+        
+        <div class="controls">
+            <button onclick="playNext()">Next Video</button>
+            <button onclick="toggleAutoplay()" id="autoplayBtn">Toggle Autoplay</button>
+        </div>
+
+        <div id="message"></div>
+
+        <div class="queue-container">
+            <h2>Queue</h2>
+            <ul class="queue-list" id="queueList"></ul>
+        </div>
+    </div>
+
+    <script>
+        let currentQueue = {{ queue|tojson|safe }};
+
+        function addVideo() {
+            const url = document.getElementById('videoUrl').value;
+            const messageDiv = document.getElementById('message');
+            
+            fetch('/add_video', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: `url=${encodeURIComponent(url)}`
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    showMessage(data.error, 'error');
+                } else {
+                    showMessage('Video added to queue!', 'success');
+                    updateQueue(data.queue);
+                    document.getElementById('videoUrl').value = '';
+                    if (currentQueue.length === 1) {
+                        updateCurrentVideo(data.video);
+                    }
+                }
+            })
+            .catch(error => {
+                showMessage('An error occurred while adding the video.', 'error');
+            });
+        }
+
+        function showMessage(text, type) {
+            const messageDiv = document.getElementById('message');
+            messageDiv.textContent = text;
+            messageDiv.className = type;
+            messageDiv.style.display = 'block';
+            setTimeout(() => {
+                messageDiv.style.display = 'none';
+            }, 3000);
+        }
+
+        function updateQueue(newQueue) {
+            currentQueue = newQueue;
+            const queueList = document.getElementById('queueList');
+            queueList.innerHTML = '';
+            
+            newQueue.forEach(video => {
+                const li = document.createElement('li');
+                li.className = 'queue-item';
+                li.dataset.videoId = video.id;
+                li.innerHTML = `
+                    <span class="handle">☰</span>
+                    <span class="title">${video.url}</span>
+                    <button class="remove" onclick="removeFromQueue('${video.id}')">Remove</button>
+                `;
+                queueList.appendChild(li);
+            });
+
+            setupDragAndDrop();
+        }
+
+        function updateCurrentVideo(video) {
+            const currentVideo = document.getElementById('currentVideo');
+            currentVideo.innerHTML = `<iframe src="${video.embed_url}" allowfullscreen></iframe>`;
+        }
+
+        function removeFromQueue(videoId) {
+            fetch('/queue/remove', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: `video_id=${videoId}`
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    updateQueue(data.queue);
+                    showMessage('Video removed from queue', 'success');
+                }
+            })
+            .catch(error => {
+                showMessage('Error removing video from queue', 'error');
+            });
+        }
+
+        function playNext() {
+            if (currentQueue.length > 1) {
+                removeFromQueue(currentQueue[0].id);
+            }
+        }
+
+        function setupDragAndDrop() {
+            const queueList = document.getElementById('queueList');
+            const items = queueList.getElementsByClassName('queue-item');
+            
+            Array.from(items).forEach(item => {
+                item.draggable = true;
+                
+                item.addEventListener('dragstart', (e) => {
+                    e.dataTransfer.setData('text/plain', item.dataset.videoId);
+                    item.classList.add('dragging');
+                });
+                
+                item.addEventListener('dragend', () => {
+                    item.classList.remove('dragging');
+                });
+                
+                item.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    const draggingItem = queueList.querySelector('.dragging');
+                    const siblings = [...queueList.querySelectorAll('.queue-item:not(.dragging)')];
+                    const nextSibling = siblings.find(sibling => {
+                        const rect = sibling.getBoundingClientRect();
+                        return e.clientY <= rect.top + rect.height / 2;
+                    });
+                    
+                    if (nextSibling) {
+                        queueList.insertBefore(draggingItem, nextSibling);
+                    } else {
+                        queueList.appendChild(draggingItem);
+                    }
+                });
+            });
+            
+            queueList.addEventListener('dragend', () => {
+                const newOrder = Array.from(items).map((item, index) => ({
+                    id: item.dataset.videoId,
+                    position: index
+                }));
+                
+                newOrder.forEach(item => {
+                    fetch('/queue/reorder', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded',
+                        },
+                        body: `video_id=${item.id}&new_position=${item.position}`
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            currentQueue = data.queue;
+                        }
+                    });
+                });
+            });
+        }
+
+        // Set up initial drag and drop
+        setupDragAndDrop();
+
+        // Poll for queue updates
+        setInterval(() => {
+            fetch('/queue')
+                .then(response => response.json())
+                .then(data => {
+                    if (JSON.stringify(data.queue) !== JSON.stringify(currentQueue)) {
+                        updateQueue(data.queue);
+                    }
+                });
+        }, 5000);
+    </script>
+</body>
+</html>

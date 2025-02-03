@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YouTube Queue - Singer</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+            color: white;
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+        .home-link {
+            color: white;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            transition: background 0.2s;
+        }
+        .home-link:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+        h1 {
+            color: #ff0000;
+            margin: 0;
+        }
+        .input-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        input[type="text"] {
+            flex: 1;
+            padding: 15px;
+            border: none;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            font-size: 1rem;
+        }
+        input[type="text"]::placeholder {
+            color: rgba(255, 255, 255, 0.6);
+        }
+        button {
+            padding: 15px 30px;
+            background: linear-gradient(45deg, #ff4b2b 0%, #ff416c 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        }
+        #message {
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 8px;
+            display: none;
+        }
+        .success {
+            background-color: rgba(40, 167, 69, 0.2);
+            border: 1px solid #28a745;
+        }
+        .error {
+            background-color: rgba(220, 53, 69, 0.2);
+            border: 1px solid #dc3545;
+        }
+        .queue-container, .search-container {
+            margin-top: 2rem;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 20px;
+        }
+        .search-results {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+        .video-card {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            overflow: hidden;
+            transition: transform 0.2s;
+            cursor: pointer;
+        }
+        .video-card:hover {
+            transform: translateY(-5px);
+            background: rgba(255, 255, 255, 0.15);
+        }
+        .video-card img {
+            width: 100%;
+            height: 140px;
+            object-fit: cover;
+        }
+        .video-info {
+            padding: 1rem;
+        }
+        .video-title {
+            font-size: 0.9rem;
+            margin-bottom: 0.5rem;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            line-height: 1.4;
+        }
+        .video-channel {
+            font-size: 0.8rem;
+            color: rgba(255, 255, 255, 0.6);
+        }
+        .pagination {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+        .pagination button {
+            background: rgba(255, 255, 255, 0.1);
+            border: none;
+            padding: 0.5rem 1rem;
+            color: white;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .pagination button:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+        .pagination button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .tabs {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+        .tab {
+            padding: 0.5rem 1rem;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .tab.active {
+            background: #ff4b2b;
+        }
+        .tab:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+        .queue-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        .queue-item {
+            display: flex;
+            align-items: center;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.05);
+            margin-bottom: 8px;
+            border-radius: 8px;
+            transition: background 0.2s;
+        }
+        .queue-item:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+        .queue-item .handle {
+            cursor: move;
+            padding: 0 15px;
+            color: rgba(255, 255, 255, 0.6);
+        }
+        .queue-item .title {
+            flex: 1;
+            margin: 0 15px;
+            word-break: break-all;
+        }
+        .queue-item .remove {
+            background: linear-gradient(45deg, #dc3545 0%, #c82333 100%);
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+        .queue-item .remove:hover {
+            transform: translateY(-2px);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Singer Mode</h1>
+            <a href="/" class="home-link">🏠 Home</a>
+        </div>
+        
+        <div class="tabs">
+            <div class="tab active" onclick="switchTab('url')">Add by URL</div>
+            <div class="tab" onclick="switchTab('search')">Search YouTube</div>
+        </div>
+
+        <div id="urlInput" class="input-group">
+            <input type="text" id="videoUrl" placeholder="Enter YouTube URL">
+            <button onclick="addVideo()">Add to Queue</button>
+        </div>
+
+        <div id="searchInput" class="input-group" style="display: none;">
+            <input type="text" id="searchQuery" placeholder="Search YouTube videos...">
+            <button onclick="searchVideos()">Search</button>
+        </div>
+
+        <div id="searchResults" class="search-container" style="display: none;">
+            <h2>Search Results</h2>
+            <div class="search-results" id="videoResults"></div>
+            <div class="pagination">
+                <button onclick="previousPage()" id="prevButton" disabled>Previous</button>
+                <button onclick="nextPage()" id="nextButton" disabled>Next</button>
+            </div>
+        </div>
+        <div id="message"></div>
+
+        <div class="queue-container">
+            <h2>Current Queue</h2>
+            <ul id="queueList" class="queue-list">
+                {% for video in queue %}
+                <li class="queue-item" data-video-id="{{ video.id }}">
+                    <span class="handle">☰</span>
+                    <span class="title">{{ video.url }}</span>
+                    <button class="remove" onclick="removeFromQueue('{{ video.id }}')">Remove</button>
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        let currentQueue = {{ queue|tojson|safe }};
+        let currentPageToken = null;
+        let nextPageToken = null;
+        let prevPageToken = null;
+        let lastSearchQuery = '';
+
+        function addVideo() {
+            const url = document.getElementById('videoUrl').value;
+            const messageDiv = document.getElementById('message');
+            
+            fetch('/add_video', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: `url=${encodeURIComponent(url)}`
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    showMessage(data.error, 'error');
+                } else {
+                    showMessage('Video added to queue!', 'success');
+                    updateQueue(data.queue);
+                    document.getElementById('videoUrl').value = '';
+                }
+            })
+            .catch(error => {
+                showMessage('An error occurred while adding the video.', 'error');
+            });
+        }
+
+        function showMessage(text, type) {
+            const messageDiv = document.getElementById('message');
+            messageDiv.textContent = text;
+            messageDiv.className = type;
+            messageDiv.style.display = 'block';
+            setTimeout(() => {
+                messageDiv.style.display = 'none';
+            }, 3000);
+        }
+
+        function updateQueue(newQueue) {
+            currentQueue = newQueue;
+            const queueList = document.getElementById('queueList');
+            queueList.innerHTML = '';
+            
+            newQueue.forEach(video => {
+                const li = document.createElement('li');
+                li.className = 'queue-item';
+                li.dataset.videoId = video.id;
+                li.innerHTML = `
+                    <span class="handle">☰</span>
+                    <span class="title">${video.url}</span>
+                    <button class="remove" onclick="removeFromQueue('${video.id}')">Remove</button>
+                `;
+                queueList.appendChild(li);
+            });
+
+            setupDragAndDrop();
+        }
+
+        function removeFromQueue(videoId) {
+            fetch('/queue/remove', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: `video_id=${videoId}`
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    updateQueue(data.queue);
+                    showMessage('Video removed from queue', 'success');
+                }
+            })
+            .catch(error => {
+                showMessage('Error removing video from queue', 'error');
+            });
+        }
+
+        function setupDragAndDrop() {
+            const queueList = document.getElementById('queueList');
+            const items = queueList.getElementsByClassName('queue-item');
+            
+            Array.from(items).forEach(item => {
+                item.draggable = true;
+                
+                item.addEventListener('dragstart', (e) => {
+                    e.dataTransfer.setData('text/plain', item.dataset.videoId);
+                    item.classList.add('dragging');
+                });
+                
+                item.addEventListener('dragend', () => {
+                    item.classList.remove('dragging');
+                });
+                
+                item.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    const draggingItem = queueList.querySelector('.dragging');
+                    const siblings = [...queueList.querySelectorAll('.queue-item:not(.dragging)')];
+                    const nextSibling = siblings.find(sibling => {
+                        const rect = sibling.getBoundingClientRect();
+                        return e.clientY <= rect.top + rect.height / 2;
+                    });
+                    
+                    if (nextSibling) {
+                        queueList.insertBefore(draggingItem, nextSibling);
+                    } else {
+                        queueList.appendChild(draggingItem);
+                    }
+                });
+            });
+            
+            queueList.addEventListener('dragend', () => {
+                const newOrder = Array.from(items).map((item, index) => ({
+                    id: item.dataset.videoId,
+                    position: index
+                }));
+                
+                newOrder.forEach(item => {
+                    fetch('/queue/reorder', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded',
+                        },
+                        body: `video_id=${item.id}&new_position=${item.position}`
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            currentQueue = data.queue;
+                        }
+                    });
+                });
+            });
+        }
+
+        function switchTab(tab) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            if (tab === 'url') {
+                document.querySelector('.tab:first-child').classList.add('active');
+                document.getElementById('urlInput').style.display = 'flex';
+                document.getElementById('searchInput').style.display = 'none';
+                document.getElementById('searchResults').style.display = 'none';
+            } else {
+                document.querySelector('.tab:last-child').classList.add('active');
+                document.getElementById('urlInput').style.display = 'none';
+                document.getElementById('searchInput').style.display = 'flex';
+                document.getElementById('searchResults').style.display = 'block';
+            }
+        }
+
+        function searchVideos(pageToken = null) {
+            const query = document.getElementById('searchQuery').value;
+            if (!query) return;
+
+            lastSearchQuery = query;
+            let url = `/youtube/search?q=${encodeURIComponent(query)}`;
+            if (pageToken) {
+                url += `&pageToken=${pageToken}`;
+            }
+
+            fetch(url)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        showMessage(data.error, 'error');
+                        return;
+                    }
+
+                    const resultsContainer = document.getElementById('videoResults');
+                    resultsContainer.innerHTML = '';
+                    
+                    data.videos.forEach(video => {
+                        const videoCard = document.createElement('div');
+                        videoCard.className = 'video-card';
+                        videoCard.onclick = () => addVideoByUrl(video.url);
+                        videoCard.innerHTML = `
+                            <img src="${video.thumbnail}" alt="${video.title}">
+                            <div class="video-info">
+                                <div class="video-title">${video.title}</div>
+                                <div class="video-channel">${video.channel}</div>
+                            </div>
+                        `;
+                        resultsContainer.appendChild(videoCard);
+                    });
+
+                    nextPageToken = data.nextPageToken;
+                    prevPageToken = data.prevPageToken;
+                    document.getElementById('nextButton').disabled = !nextPageToken;
+                    document.getElementById('prevButton').disabled = !prevPageToken;
+                })
+                .catch(error => {
+                    showMessage('Error searching videos', 'error');
+                });
+        }
+
+        function nextPage() {
+            if (nextPageToken) {
+                searchVideos(nextPageToken);
+            }
+        }
+
+        function previousPage() {
+            if (prevPageToken) {
+                searchVideos(prevPageToken);
+            }
+        }
+
+        function addVideoByUrl(url) {
+            document.getElementById('videoUrl').value = url;
+            addVideo();
+        }
+
+        // Set up initial drag and drop
+        setupDragAndDrop();
+
+        // Poll for queue updates
+        setInterval(() => {
+            fetch('/queue')
+                .then(response => response.json())
+                .then(data => {
+                    if (JSON.stringify(data.queue) !== JSON.stringify(currentQueue)) {
+                        updateQueue(data.queue);
+                    }
+                });
+        }, 5000);
+
+        // Add enter key listener for search
+        document.getElementById('searchQuery').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                searchVideos();
+            }
+        });
+    </script>
+</body>
+</html>

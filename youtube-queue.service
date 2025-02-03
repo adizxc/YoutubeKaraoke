@@ -1,0 +1,14 @@
+[Unit]
+Description=YouTube Queue Application
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/youtube-queue
+Environment=PATH=/opt/youtube-queue/venv/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+ExecStart=/opt/youtube-queue/venv/bin/gunicorn --bind 0.0.0.0:5002 app:app --timeout 120
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
