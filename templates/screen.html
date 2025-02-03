@@ -74,32 +74,30 @@
             border: 1px solid #dc3545;
             color: white;
         }
-        .queue-container {
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: 12px;
-            padding: 20px;
-            margin-top: 2rem;
-        }
-        .queue-list {
-            list-style: none;
-            padding: 0;
-            margin: 0;
-        }
-        .queue-item {
+        #controls {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 1001;
             display: flex;
-            align-items: center;
-            padding: 15px;
-            background: rgba(255, 255, 255, 0.1);
-            margin-bottom: 10px;
-            border-radius: 8px;
-            transition: background 0.2s;
+            gap: 10px;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 15px 25px;
+            border-radius: 30px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
         }
-        .queue-item:hover {
-            background: rgba(255, 255, 255, 0.15);
+        #controls button {
+            padding: 10px 20px;
+            font-size: 0.9rem;
+            border-radius: 20px;
+            transition: transform 0.2s, background-color 0.2s;
         }
-        .current {
-            background: rgba(255, 75, 43, 0.2);
-            border: 1px solid #ff4b2b;
+        #controls button:hover {
+            transform: translateY(-2px);
+        }
+        #autoplayBtn {
+            background-color: #28a745;
         }
         .home-link {
             display: inline-block;
@@ -169,17 +167,12 @@
         
         <div id="player"></div>
         
-        <div class="controls">
+        <div class="controls" id="controls">
             <button onclick="playNext()">Next Video</button>
-            <button onclick="toggleAutoplay()" id="autoplayBtn">Toggle Autoplay</button>
+            <button onclick="toggleAutoplay()" id="autoplayBtn">Autoplay: ON</button>
         </div>
 
         <div id="message"></div>
-
-        <div class="queue-container">
-            <h2>Queue</h2>
-            <ul class="queue-list" id="queueList"></ul>
-        </div>
     </div>
 
     <script>
@@ -224,29 +217,24 @@
             }, 3000);
         }
 
+        let autoplay = true;
+        let currentVideoId = null;
+
         function updateQueue(newQueue) {
             currentQueue = newQueue;
-            const queueList = document.getElementById('queueList');
-            queueList.innerHTML = '';
             
-            newQueue.forEach(video => {
-                const li = document.createElement('li');
-                li.className = 'queue-item';
-                li.dataset.videoId = video.id;
-                li.innerHTML = `
-                    <span class="handle">☰</span>
-                    <span class="title">${video.url}</span>
-                    <button class="remove" onclick="removeFromQueue('${video.id}')">Remove</button>
-                `;
-                queueList.appendChild(li);
-            });
-
-            setupDragAndDrop();
+            // If no video is playing and we have videos in queue, start playing
+            if (!currentVideoId && newQueue.length > 0) {
+                updateCurrentVideo(newQueue[0]);
+            }
         }
 
         function updateCurrentVideo(video) {
+            if (!video) return;
+            
+            currentVideoId = video.id;
             const player = document.getElementById('player');
-            player.innerHTML = `<iframe src="${video.embed_url}?autoplay=1&modestbranding=1&rel=0&showinfo=0&controls=1" 
+            player.innerHTML = `<iframe src="${video.embed_url}?autoplay=1&modestbranding=1&rel=0&showinfo=0&controls=1&enablejsapi=1" 
                 allowfullscreen style="width:100%;height:100%;border:0;"></iframe>`;
             player.classList.add('active');
 
@@ -261,6 +249,9 @@
                     iframe.msRequestFullscreen();
                 }
             }, 1000);
+
+            // Update queue display to show current video
+            updateQueue(currentQueue);
         }
 
         function removeFromQueue(videoId) {
@@ -360,11 +351,18 @@
                 !document.msFullscreenElement) {
                 // User exited fullscreen
                 player.classList.remove('active');
+                if (autoplay) {
+                    playNext();
+                }
             }
         }
 
-        // Set up initial drag and drop
-        setupDragAndDrop();
+        function toggleAutoplay() {
+            autoplay = !autoplay;
+            const btn = document.getElementById('autoplayBtn');
+            btn.textContent = autoplay ? 'Autoplay: ON' : 'Autoplay: OFF';
+            btn.style.backgroundColor = autoplay ? '#28a745' : '#dc3545';
+        }
 
         // Poll for queue updates
         setInterval(() => {
